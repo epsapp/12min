@@ -288,11 +288,16 @@ html, body {
       <div class="form-group">
         <label>VMA (km/h)</label>
         <select id="c1-vma">
-          <option value="8">8</option><option value="9">9</option>
-          <option value="10">10</option><option value="11">11</option>
-          <option value="12" selected>12</option><option value="13">13</option>
-          <option value="14">14</option><option value="15">15</option>
-          <option value="16">16</option><option value="17">17</option>
+          <option value="8">8</option><option value="8.5">8.5</option>
+          <option value="9">9</option><option value="9.5">9.5</option>
+          <option value="10">10</option><option value="10.5">10.5</option>
+          <option value="11">11</option><option value="11.5">11.5</option>
+          <option value="12" selected>12</option><option value="12.5">12.5</option>
+          <option value="13">13</option><option value="13.5">13.5</option>
+          <option value="14">14</option><option value="14.5">14.5</option>
+          <option value="15">15</option><option value="15.5">15.5</option>
+          <option value="16">16</option><option value="16.5">16.5</option>
+          <option value="17">17</option><option value="17.5">17.5</option>
           <option value="18">18</option>
         </select>
       </div>
@@ -319,6 +324,13 @@ html, body {
       <label style="font-size:0.78rem;color:var(--text-dim);margin-bottom:5px;display:block;">Colonnes à rayer (cliquer) :</label>
       <div class="skip-cols" id="c1-skip-cols"></div>
     </div>
+    <div class="form-group" style="margin-top:8px;">
+      <label>Nombre de 30/30 (répétitions)</label>
+      <select id="c1-reps">
+        <option value="4">4</option><option value="5">5</option>
+        <option value="6" selected>6</option><option value="7">7</option>
+      </select>
+    </div>
   </div>
 
   <div class="card" id="card-c2">
@@ -331,11 +343,16 @@ html, body {
       <div class="form-group">
         <label>VMA (km/h)</label>
         <select id="c2-vma">
-          <option value="8">8</option><option value="9">9</option>
-          <option value="10">10</option><option value="11">11</option>
-          <option value="12" selected>12</option><option value="13">13</option>
-          <option value="14">14</option><option value="15">15</option>
-          <option value="16">16</option><option value="17">17</option>
+          <option value="8">8</option><option value="8.5">8.5</option>
+          <option value="9">9</option><option value="9.5">9.5</option>
+          <option value="10">10</option><option value="10.5">10.5</option>
+          <option value="11">11</option><option value="11.5">11.5</option>
+          <option value="12" selected>12</option><option value="12.5">12.5</option>
+          <option value="13">13</option><option value="13.5">13.5</option>
+          <option value="14">14</option><option value="14.5">14.5</option>
+          <option value="15">15</option><option value="15.5">15.5</option>
+          <option value="16">16</option><option value="16.5">16.5</option>
+          <option value="17">17</option><option value="17.5">17.5</option>
           <option value="18">18</option>
         </select>
       </div>
@@ -362,13 +379,9 @@ html, body {
       <label style="font-size:0.78rem;color:var(--text-dim);margin-bottom:5px;display:block;">Colonnes à rayer (cliquer) :</label>
       <div class="skip-cols" id="c2-skip-cols"></div>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">🔁 Séries 30/30</div>
-    <div class="form-group">
-      <label>Nombre de répétitions (4 à 7)</label>
-      <select id="cfg-reps">
+    <div class="form-group" style="margin-top:8px;">
+      <label>Nombre de 30/30 (répétitions)</label>
+      <select id="c2-reps">
         <option value="4">4</option><option value="5">5</option>
         <option value="6" selected>6</option><option value="7">7</option>
       </select>
@@ -483,7 +496,14 @@ html, body {
     <div id="r30-phase" class="phase-indicator phase-run">🏃 COURSE</div>
   </div>
 
-  <div style="text-align:center;font-size:0.72rem;color:var(--text-dim);margin-top:2px;">RÉPÉTITIONS</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
+    <div style="font-size:0.72rem;color:var(--text-dim);">RÉPÉTITIONS</div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.82rem;width:auto;" onclick="changeReps30(-1)">−</button>
+      <span id="r30-reps-total" style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--accent);"></span>
+      <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.82rem;width:auto;" onclick="changeReps30(+1)">+</button>
+    </div>
+  </div>
   <div class="rep-grid" id="r30-reps"></div>
 
   <div class="card">
@@ -510,6 +530,10 @@ html, body {
     </button>
   </div>
 
+  <button class="btn btn-primary hidden" id="r30-btn-finish-rest" onclick="finishLastRest()" style="margin-top:8px;">
+    ✅ Fin récup — Passer aux résultats
+  </button>
+
   <div class="divider"></div>
   <div id="r30-summary"></div>
 </div>
@@ -534,8 +558,7 @@ html, body {
     <div class="card-title">Partie 2 — 30/30</div>
     <div class="result-row"><span class="label">Contrat</span><span class="value" id="res-contract-30"></span></div>
     <div class="result-row"><span class="label">Rép. réussies</span><span class="value" id="res-reps-ok"></span></div>
-    <div class="result-row"><span class="label">Sorties 30/30</span><span class="value" id="res-sorties-30"></span></div>
-    <div class="result-row"><span class="label">Rattrapages</span><span class="value" id="res-rattrapages"></span></div>
+    <div class="result-row"><span class="label">Rattrapages (sorties annulées)</span><span class="value" id="res-rattrapages"></span></div>
   </div>
 
   <div class="card">
@@ -673,12 +696,17 @@ function vmaScore(vma, g) {
     G:{18:4,17:4,16:4,15:3.5,14:3,13:2.5,12:2,11:1.5,10:1,9:0.5,8:0},
     F:{18:4,17:4,16:4,15:4,14:4,13:3.5,12:3,11:2.5,10:2,9:1.5,8:1}
   };
-  return t[g]?.[vma] ?? 0;
+  const floor = Math.floor(vma), ceil = Math.ceil(vma);
+  if (floor === ceil) return t[g]?.[vma] ?? 0;
+  // Interpolation pour les demi-valeurs
+  const s1 = t[g]?.[floor] ?? 0;
+  const s2 = t[g]?.[ceil] ?? 0;
+  return (s1 + s2) / 2;
 }
 
 function sortiesScore(n) {
   if (n <= 0) return 8;
-  if (n <= 7) return 8 - n;
+  if (n < 8) return Math.max(0, +(8 - n).toFixed(1));
   return 0;
 }
 
@@ -690,15 +718,15 @@ function startRace(first) {
 
   S.plotDist = parseInt(document.getElementById('cfg-plot-dist').value) || 20;
   S.trackLength = parseInt(document.getElementById('cfg-track-length').value) || 200;
-  S.reps3030 = parseInt(document.getElementById('cfg-reps').value) || 6;
   S.order = first === 1 ? [0,1] : [1,0];
 
   for (let i = 0; i < 2; i++) {
     const ri = i+1;
     const allureEl = document.querySelector(`.allure-opt[data-runner="${ri}"].selected`);
     const allure = allureEl ? allureEl.dataset.allure : 'green';
-    const vma = parseInt(document.getElementById(`c${ri}-vma`).value);
+    const vma = parseFloat(document.getElementById(`c${ri}-vma`).value);
     const gender = document.getElementById(`c${ri}-gender`).value;
+    const reps3030 = parseInt(document.getElementById(`c${ri}-reps`).value) || 6;
 
     S.runners[i] = {
       name: document.getElementById(`c${ri}-name`).value || `Coureur ${ri}`,
@@ -707,6 +735,7 @@ function startRace(first) {
       skippedCols: getSkippedCols(ri),
       plotTarget90: 0,
       contract30: contract3030(vma),
+      reps3030,
       grid: Array.from({length:8}, () => 0),
       walkPen12: Array.from({length:8}, () => false),
       repsData: [],
@@ -771,6 +800,7 @@ function tick12() {
     updateColState();
     renderColBar();
     updateFeedback12();
+    calcSorties12();
   }
 
   // Update feedback continuously
@@ -853,6 +883,7 @@ function recordPlot12() {
   beep(900, 0.06, 0.15);
   renderGrid12();
   updateFeedback12();
+  calcSorties12();
 }
 
 function recordWalk12() {
@@ -897,13 +928,19 @@ function updatePenCount12() {
 function calcSorties12() {
   const r = S.runners[S.currentIdx];
   let s = 0;
-  const tgt = Math.floor(r.plotTarget90);
   for (let c = 0; c < col12; c++) {
     if (r.skippedCols.includes(c+1)) continue;
-    const deficit = tgt - r.grid[c];
-    if (deficit > 0) s += deficit;
+    // Vitesse réelle de la colonne, arrondie à 0,5 km/h
+    const actualSpeed = (r.grid[c] * S.plotDist / 90) * 3.6;
+    const roundedActual = Math.round(actualSpeed * 2) / 2;
+    if (roundedActual < r.tSpeed) {
+      s += r.tSpeed - roundedActual; // déficit en km/h (multiples de 0,5)
+    }
   }
-  document.getElementById('r12-sorties').textContent = s;
+  // Arrondi au 0,5 près pour l'affichage
+  const display = s % 1 === 0 ? s : s.toFixed(1);
+  document.getElementById('r12-sorties').textContent = display;
+  return s;
 }
 
 function stop12Confirm() {
@@ -922,7 +959,7 @@ function goTransition() {
   showScreen('screen-transition');
   const r = S.runners[S.currentIdx];
   document.getElementById('trans-text').innerHTML =
-    `<strong>${r.name}</strong> a terminé les 12 minutes.<br>Préparez-vous pour les <strong>${S.reps3030}× 30/30</strong> à VMA.`;
+    `<strong>${r.name}</strong> a terminé les 12 minutes.<br>Préparez-vous pour les <strong>${r.reps3030}× 30/30</strong> à VMA.`;
 }
 
 function startPhase2() { launch3030(); }
@@ -947,6 +984,7 @@ function launch3030() {
   document.getElementById('r30-plot-count').textContent = '0';
   document.getElementById('r30-feedback').classList.add('hidden');
   document.getElementById('r30-summary').innerHTML = '';
+  document.getElementById('r30-reps-total').textContent = r.reps3030 + ' rép.';
 
   beep3030Start();
   t30 = setInterval(tick30, 1000);
@@ -961,16 +999,16 @@ function tick30() {
   update30Timer();
 
   if (timeLeft <= 0) {
+    const r = S.runners[S.currentIdx];
     if (isRun) {
       // Save rep
-      const r = S.runners[S.currentIdx];
       r.repsData.push({ plots: plotsRep, walked: r.walkPen30[repIdx] || false });
       isRun = false; timeLeft = 30;
       beep3030Rest();
       updateUI30(); buildReps(); updateSummary30();
     } else {
       repIdx++;
-      if (repIdx >= S.reps3030) {
+      if (repIdx >= r.reps3030) {
         clearInterval(t30); t30 = null;
         beepEnd();
         setTimeout(() => showResults(), 300);
@@ -993,18 +1031,24 @@ function update30Timer() {
 }
 
 function updateUI30() {
+  const r = S.runners[S.currentIdx];
   const ph = document.getElementById('r30-phase');
   const lb = document.getElementById('r30-timer-label');
+  const finBtn = document.getElementById('r30-btn-finish-rest');
   if (isRun) {
     ph.textContent = '🏃 COURSE'; ph.className = 'phase-indicator phase-run';
-    lb.textContent = `30/30 — COURSE (Rép. ${repIdx+1}/${S.reps3030})`;
+    lb.textContent = `30/30 — COURSE (Rép. ${repIdx+1}/${r.reps3030})`;
     document.getElementById('r30-btn-plot').disabled = false;
     document.getElementById('r30-btn-walk').disabled = false;
+    finBtn.classList.add('hidden');
   } else {
     ph.textContent = '⏸️ RÉCUPÉRATION'; ph.className = 'phase-indicator phase-rest';
     lb.textContent = `30/30 — REPOS`;
     document.getElementById('r30-btn-plot').disabled = true;
     document.getElementById('r30-btn-walk').disabled = true;
+    // Montrer le bouton "Terminer" uniquement lors de la dernière récupération
+    const isLastRest = repIdx === r.reps3030 - 1;
+    finBtn.classList.toggle('hidden', !isLastRest);
   }
 }
 
@@ -1012,7 +1056,7 @@ function buildReps() {
   const r = S.runners[S.currentIdx];
   const c = document.getElementById('r30-reps');
   c.innerHTML = '';
-  for (let i = 0; i < S.reps3030; i++) {
+  for (let i = 0; i < r.reps3030; i++) {
     const d = document.createElement('div');
     d.className = 'rep-item';
     if (i < r.repsData.length) {
@@ -1066,6 +1110,23 @@ function updateFeedback30() {
   else { fb.className = 'speed-feedback speed-ok'; fb.textContent = '✅ Cible !'; }
 }
 
+function changeReps30(delta) {
+  const r = S.runners[S.currentIdx];
+  const minReps = repIdx + (isRun ? 1 : 1); // au moins la rép en cours
+  const newVal = r.reps3030 + delta;
+  if (newVal < minReps || newVal > 12) return;
+  r.reps3030 = newVal;
+  document.getElementById('r30-reps-total').textContent = r.reps3030 + ' rép.';
+  buildReps();
+  updateUI30();
+}
+
+function finishLastRest() {
+  clearInterval(t30); t30 = null;
+  beepEnd();
+  showResults();
+}
+
 function updateSummary30() {
   const r = S.runners[S.currentIdx];
   let h = '<div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:4px;">Récap :</div>';
@@ -1094,51 +1155,47 @@ function showResults() {
   const totalPlots = r.grid.reduce((a,b) => a+b, 0);
   document.getElementById('res-plots-total').textContent = totalPlots;
 
-  // Sorties 12min
+  // Sorties 12min (basées sur le déficit de vitesse en km/h, arrondi à 0,5)
   let sorties12 = 0;
-  const tgt = Math.floor(r.plotTarget90);
   for (let c = 0; c < 8; c++) {
     if (r.skippedCols.includes(c+1)) continue;
-    const def = tgt - r.grid[c];
-    if (def > 0) sorties12 += def;
+    const actualSpeed = (r.grid[c] * S.plotDist / 90) * 3.6;
+    const roundedActual = Math.round(actualSpeed * 2) / 2;
+    if (roundedActual < r.tSpeed) sorties12 += r.tSpeed - roundedActual;
   }
-  document.getElementById('res-sorties').textContent = sorties12;
+  const sorties12Display = sorties12 % 1 === 0 ? sorties12 : sorties12.toFixed(1);
+  document.getElementById('res-sorties').textContent = sorties12Display;
 
   const walkPen = r.walkPen12.filter(Boolean).length;
   document.getElementById('res-penalties').textContent = walkPen;
 
-  // 30/30
-  let sorties30 = 0, repsOk = 0;
+  // 30/30 — uniquement pour les rattrapages, pas de pénalités
+  let repsOk = 0;
   r.repsData.forEach(rd => {
     const ok = rd.plots >= r.contract30 && !rd.walked;
     if (ok) repsOk++;
-    else {
-      // Each failed rep = deficit in plots counts as sortie
-      const deficit = Math.max(0, Math.ceil(r.contract30) - rd.plots);
-      sorties30 += Math.max(1, deficit); // au moins 1 sortie par rep ratée
-      if (rd.walked) sorties30++; // marche = pénalité supplémentaire
-    }
   });
 
-  // Rattrapages
+  // Rattrapages : chaque rép réussie au-delà de 4 annule une sortie (max 3)
   let rattrapages = 0;
   if (repsOk > 4) rattrapages = Math.min(repsOk - 4, 3);
 
-  const totalSorties = Math.max(0, sorties12 + walkPen + sorties30 - rattrapages);
+  const totalSortiesRaw = Math.max(0, sorties12 + walkPen - rattrapages);
+  const totalSorties = Math.round(totalSortiesRaw * 2) / 2;
 
   document.getElementById('res-contract-30').textContent = r.contract30 + ' plots/30"';
-  document.getElementById('res-reps-ok').textContent = repsOk + ' / ' + S.reps3030;
-  document.getElementById('res-sorties-30').textContent = sorties30;
+  document.getElementById('res-reps-ok').textContent = repsOk + ' / ' + r.reps3030;
   document.getElementById('res-rattrapages').textContent = rattrapages > 0 ? '-' + rattrapages : '0';
-  document.getElementById('res-total-sorties').textContent = totalSorties;
+  document.getElementById('res-total-sorties').textContent = totalSorties % 1 === 0 ? totalSorties : totalSorties.toFixed(1);
 
   const d1Reg = sortiesScore(totalSorties);
   const d1Vma = vmaScore(r.vma, r.gender);
   document.getElementById('res-d1-reg').textContent = d1Reg + ' / 8';
   document.getElementById('res-d1-vma').textContent = d1Vma + ' / 4';
-  document.getElementById('res-d1-total').textContent = (d1Reg + d1Vma) + ' / 12';
+  const d1Total = +(d1Reg + d1Vma).toFixed(1);
+  document.getElementById('res-d1-total').textContent = d1Total + ' / 12';
 
-  r.results = { totalPlots, sorties12, walkPen, sorties30, repsOk, rattrapages, totalSorties, d1Reg, d1Vma, d1Total: d1Reg + d1Vma };
+  r.results = { totalPlots, sorties12, walkPen, repsOk, rattrapages, totalSorties, d1Reg, d1Vma, d1Total };
 
   S.completedRunners++;
   const nextBtn = document.getElementById('res-next-btn');
