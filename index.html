@@ -10,6 +10,7 @@
 <meta name="description" content="Épreuve finale de course 12 minutes + 30/30 pour EPS">
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-96x96.png">
@@ -272,6 +273,41 @@ html, body {
 }
 .qr-canvas-wrap canvas, .qr-canvas-wrap img { display:block; }
 
+/* SCANNER */
+.scanner-wrap {
+  position:relative; background:#000; border-radius:12px;
+  overflow:hidden; aspect-ratio:1/1; max-width:320px; margin:0 auto 12px;
+}
+.scanner-wrap video { width:100%; height:100%; object-fit:cover; display:block; }
+.scanner-overlay {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  pointer-events:none;
+}
+.scanner-frame {
+  width:65%; aspect-ratio:1/1; border:3px solid var(--accent);
+  border-radius:10px; box-shadow:0 0 0 2000px rgba(0,0,0,0.45);
+}
+.scanner-status {
+  text-align:center; font-size:0.85rem; color:var(--text-dim);
+  min-height:1.4em; margin-bottom:8px;
+}
+.scanner-status.ok { color:var(--green); font-weight:700; }
+.scanner-status.err { color:var(--danger); }
+
+/* PROF collected results */
+.prof-card {
+  background:var(--bg2); border-radius:var(--radius);
+  border:1px solid rgba(255,255,255,0.06);
+  padding:10px 12px; margin-bottom:8px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.prof-card .pc-name { font-weight:700; font-size:0.95rem; }
+.prof-card .pc-score {
+  font-family:'JetBrains Mono',monospace; font-size:1.3rem;
+  font-weight:800; color:var(--accent);
+}
+.prof-card .pc-detail { font-size:0.72rem; color:var(--text-dim); margin-top:2px; }
+
 /* VIEWER SCREEN */
 .viewer-badge {
   display:inline-block; padding:3px 10px; border-radius:20px;
@@ -433,6 +469,9 @@ html, body {
   </button>
   <button class="btn btn-secondary btn-large" onclick="startRace(2)" style="margin-top:6px;">
     ▶️ Coureur 2 court en premier
+  </button>
+  <button class="btn btn-secondary btn-large" onclick="enterProfMode()" style="margin-top:12px;border-color:var(--blue);color:var(--blue);">
+    📷 Mode Professeur — Scanner les QR élèves
   </button>
 </div>
 
@@ -621,14 +660,49 @@ html, body {
   <button class="btn btn-secondary btn-large" onclick="resetApp()" style="margin-top:6px;">🔄 Recommencer</button>
 </div>
 
+<!-- ====== SCREEN: MODE PROF (scanner QR) ====== -->
+<div id="screen-prof" class="screen">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+    <button class="btn btn-secondary" style="width:auto;padding:8px 14px;" onclick="stopScanner();showScreen('screen-config')">← Retour</button>
+    <div>
+      <div style="font-size:0.72rem;color:var(--text-dim);">INTERFACE</div>
+      <div style="font-weight:800;font-size:1.1rem;">Mode Professeur</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📷 Scanner un QR élève</div>
+    <div class="scanner-wrap">
+      <video id="prof-video" autoplay playsinline muted></video>
+      <div class="scanner-overlay"><div class="scanner-frame"></div></div>
+    </div>
+    <div class="scanner-status" id="prof-scan-status">Pointez la caméra vers le QR code de l'élève</div>
+    <div class="action-row">
+      <button class="btn btn-primary" id="prof-btn-start" onclick="startScanner()">▶ Démarrer la caméra</button>
+      <button class="btn btn-secondary hidden" id="prof-btn-stop" onclick="stopScanner()">⏹ Arrêter</button>
+    </div>
+  </div>
+
+  <div id="prof-results-section" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div class="card-title" style="margin:0;">📋 Résultats collectés (<span id="prof-count">0</span>)</div>
+      <button class="btn btn-secondary" style="width:auto;padding:5px 10px;font-size:0.78rem;" onclick="clearProfResults()">🗑 Vider</button>
+    </div>
+    <div id="prof-results-list"></div>
+  </div>
+</div>
+
 <!-- ====== SCREEN: VIEWER (résultats via QR) ====== -->
 <div id="screen-viewer" class="screen">
-  <div class="app-header">
-    <h1>📊 Mes Résultats</h1>
-    <div class="viewer-badge">MODE ÉLÈVE</div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+    <button class="btn btn-secondary" id="viewer-back-btn" style="width:auto;padding:8px 14px;display:none;" onclick="showScreen('screen-prof')">← Liste</button>
+    <div class="app-header" style="flex:1;padding:8px 0 4px;">
+      <h1>📊 Résultats</h1>
+      <div class="viewer-badge" id="viewer-badge-label">MODE ÉLÈVE</div>
+    </div>
   </div>
   <div id="viewer-content"></div>
-  <p class="info-text" style="text-align:center;margin-top:16px;">Résultats transmis par votre enseignant(e)</p>
+  <p class="info-text" id="viewer-footer" style="text-align:center;margin-top:16px;">Résultats transmis par votre enseignant(e)</p>
 </div>
 
 <!-- ====== SCREEN: FINAL ====== -->
@@ -1301,6 +1375,7 @@ function showScreen(id) {
 function resetApp() {
   if (t12) { clearInterval(t12); t12 = null; }
   if (t30) { clearInterval(t30); t30 = null; }
+  stopScanner();
   showScreen('screen-config');
 }
 
@@ -1404,6 +1479,134 @@ function closeQRModal(event) {
 }
 
 // =========================================
+// MODE PROF — SCANNER QR
+// =========================================
+
+let profStream = null, profScanRAF = null, profResults = [];
+const profCanvas = document.createElement('canvas');
+const profCtx = profCanvas.getContext('2d', { willReadFrequently: true });
+
+function enterProfMode() {
+  showScreen('screen-prof');
+  profResults = [];
+  renderProfResults();
+}
+
+async function startScanner() {
+  const status = document.getElementById('prof-scan-status');
+  status.textContent = 'Accès à la caméra…';
+  status.className = 'scanner-status';
+  try {
+    profStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
+    });
+    const video = document.getElementById('prof-video');
+    video.srcObject = profStream;
+    await video.play();
+    document.getElementById('prof-btn-start').classList.add('hidden');
+    document.getElementById('prof-btn-stop').classList.remove('hidden');
+    status.textContent = 'Pointez vers le QR code…';
+    scanFrame();
+  } catch(e) {
+    status.textContent = 'Caméra inaccessible : ' + (e.message || e);
+    status.className = 'scanner-status err';
+  }
+}
+
+function scanFrame() {
+  const video = document.getElementById('prof-video');
+  if (!video.videoWidth) { profScanRAF = requestAnimationFrame(scanFrame); return; }
+
+  profCanvas.width = video.videoWidth;
+  profCanvas.height = video.videoHeight;
+  profCtx.drawImage(video, 0, 0);
+  const imgData = profCtx.getImageData(0, 0, profCanvas.width, profCanvas.height);
+
+  if (typeof jsQR !== 'undefined') {
+    const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
+    if (code && code.data) {
+      handleScannedQR(code.data);
+      return; // pause scan 2s then resume
+    }
+  }
+  profScanRAF = requestAnimationFrame(scanFrame);
+}
+
+function handleScannedQR(text) {
+  const status = document.getElementById('prof-scan-status');
+  try {
+    const hashIdx = text.indexOf('#r=');
+    if (hashIdx === -1) throw new Error('QR non reconnu');
+    const encoded = text.slice(hashIdx + 3);
+    const json = decodeURIComponent(escape(atob(encoded)));
+    const d = JSON.parse(json);
+
+    // Éviter les doublons (même nom)
+    const exists = profResults.find(r => r.n === d.n);
+    if (exists) {
+      Object.assign(exists, d); // mettre à jour si re-scanné
+    } else {
+      profResults.push(d);
+    }
+    renderProfResults();
+    status.textContent = '✅ ' + d.n + ' — ' + d.dt + '/12';
+    status.className = 'scanner-status ok';
+    // Reprendre le scan après 2s
+    setTimeout(() => {
+      status.textContent = 'Pointez vers le QR code suivant…';
+      status.className = 'scanner-status';
+      profScanRAF = requestAnimationFrame(scanFrame);
+    }, 2000);
+  } catch(e) {
+    status.textContent = 'QR non reconnu, réessayez.';
+    status.className = 'scanner-status err';
+    setTimeout(() => {
+      status.textContent = 'Pointez vers le QR code…';
+      status.className = 'scanner-status';
+      profScanRAF = requestAnimationFrame(scanFrame);
+    }, 1500);
+  }
+}
+
+function stopScanner() {
+  if (profScanRAF) { cancelAnimationFrame(profScanRAF); profScanRAF = null; }
+  if (profStream) { profStream.getTracks().forEach(t => t.stop()); profStream = null; }
+  const video = document.getElementById('prof-video');
+  video.srcObject = null;
+  document.getElementById('prof-btn-start').classList.remove('hidden');
+  document.getElementById('prof-btn-stop').classList.add('hidden');
+  document.getElementById('prof-scan-status').textContent = 'Caméra arrêtée.';
+  document.getElementById('prof-scan-status').className = 'scanner-status';
+}
+
+function renderProfResults() {
+  const list = document.getElementById('prof-results-list');
+  const section = document.getElementById('prof-results-section');
+  document.getElementById('prof-count').textContent = profResults.length;
+
+  if (profResults.length === 0) { section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+
+  // Trier par score décroissant
+  const sorted = [...profResults].sort((a, b) => b.dt - a.dt);
+  const allureShort = { green: 'Verte', yellow: 'Jaune', orange: 'Orange' };
+  list.innerHTML = sorted.map((d, i) => `
+    <div class="prof-card" onclick="showViewerScreen(${JSON.stringify(d).replace(/"/g, '&quot;')}, true)">
+      <div>
+        <div class="pc-name">${i + 1}. ${d.n}</div>
+        <div class="pc-detail">VMA ${d.v} — ${allureShort[d.a] || d.a} — ${d.ok}/${d.rp} rép. — ${d.tot} sortie(s)</div>
+      </div>
+      <div class="pc-score">${d.dt}<span style="font-size:0.7rem;color:var(--text-dim)">/12</span></div>
+    </div>`).join('');
+}
+
+function clearProfResults() {
+  if (!confirm('Vider la liste des résultats ?')) return;
+  profResults = [];
+  renderProfResults();
+}
+
+// =========================================
 // VIEWER — MODE ÉLÈVE (lecture QR)
 // =========================================
 
@@ -1421,11 +1624,26 @@ function checkQRHash() {
   }
 }
 
-function showViewerScreen(d) {
+function showViewerScreen(d, fromProf = false) {
   const allureNames = { green: '🟢 Verte (VMA−3)', yellow: '🟡 Jaune (VMA−2)', orange: '🟠 Orange (VMA−1)' };
   const gLabel = d.g === 'F' ? 'Fille' : 'Garçon';
   const s12 = d.s12 % 1 === 0 ? d.s12 : (+d.s12).toFixed(1);
   const tot = d.tot % 1 === 0 ? d.tot : (+d.tot).toFixed(1);
+  // Contexte prof : bouton retour vers liste, badge différent
+  const backBtn = document.getElementById('viewer-back-btn');
+  const badge = document.getElementById('viewer-badge-label');
+  const footer = document.getElementById('viewer-footer');
+  if (fromProf) {
+    backBtn.style.display = '';
+    badge.textContent = 'MODE PROFESSEUR';
+    badge.style.background = 'rgba(0,212,170,0.2)'; badge.style.color = 'var(--accent)';
+    footer.style.display = 'none';
+  } else {
+    backBtn.style.display = 'none';
+    badge.textContent = 'MODE ÉLÈVE';
+    badge.style.background = ''; badge.style.color = '';
+    footer.style.display = '';
+  }
 
   document.getElementById('viewer-content').innerHTML = `
     <div class="card">
