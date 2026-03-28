@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#1a1a2e">
 <meta name="description" content="Épreuve finale de course 12 minutes + 30/30 pour EPS">
 <link rel="manifest" href="manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-96x96.png">
@@ -251,11 +252,50 @@ html, body {
 .pulsing { animation:pulse 1s infinite; }
 
 @media(min-width:600px) { .screen { max-width:500px; margin:0 auto; } }
+
+/* QR MODAL */
+.qr-modal {
+  display:none; position:fixed; inset:0; z-index:500;
+  background:rgba(0,0,0,0.85); align-items:center; justify-content:center;
+}
+.qr-modal.open { display:flex; }
+.qr-box {
+  background:var(--bg2); border-radius:16px; padding:24px;
+  max-width:340px; width:90%; text-align:center;
+  border:1px solid rgba(255,255,255,0.1);
+}
+.qr-box h2 { font-size:1.1rem; font-weight:700; margin-bottom:4px; }
+.qr-box p { font-size:0.8rem; color:var(--text-dim); margin-bottom:16px; }
+.qr-canvas-wrap {
+  background:#fff; border-radius:10px; padding:12px;
+  display:inline-block; margin-bottom:16px;
+}
+.qr-canvas-wrap canvas, .qr-canvas-wrap img { display:block; }
+
+/* VIEWER SCREEN */
+.viewer-badge {
+  display:inline-block; padding:3px 10px; border-radius:20px;
+  font-size:0.72rem; font-weight:700; letter-spacing:1px;
+  background:rgba(77,171,247,0.2); color:var(--blue); margin-bottom:12px;
+}
 </style>
 </head>
 <body>
 
 <div class="beep-indicator" id="beep-flash"></div>
+
+<!-- ====== MODAL QR CODE ====== -->
+<div class="qr-modal" id="qr-modal" onclick="closeQRModal(event)">
+  <div class="qr-box">
+    <h2>📲 QR Code Résultats</h2>
+    <p>L'élève scanne ce code pour voir ses résultats</p>
+    <div class="qr-canvas-wrap">
+      <div id="qr-container"></div>
+    </div>
+    <p id="qr-runner-label" style="font-weight:700;margin-bottom:8px;"></p>
+    <button class="btn btn-secondary" onclick="closeQRModal()" style="margin-top:4px;">✕ Fermer</button>
+  </div>
+</div>
 
 <!-- ====== SCREEN: CONFIG ====== -->
 <div id="screen-config" class="screen active">
@@ -575,7 +615,20 @@ html, body {
   <button class="btn btn-secondary btn-large" onclick="showFinalScreen()" id="res-final-btn" class="hidden" style="margin-top:6px;">
     📊 Voir résultats finaux
   </button>
+  <button class="btn btn-secondary btn-large" id="res-qr-btn" onclick="showQRModal()" style="margin-top:6px;">
+    📲 QR Code — Partager avec l'élève
+  </button>
   <button class="btn btn-secondary btn-large" onclick="resetApp()" style="margin-top:6px;">🔄 Recommencer</button>
+</div>
+
+<!-- ====== SCREEN: VIEWER (résultats via QR) ====== -->
+<div id="screen-viewer" class="screen">
+  <div class="app-header">
+    <h1>📊 Mes Résultats</h1>
+    <div class="viewer-badge">MODE ÉLÈVE</div>
+  </div>
+  <div id="viewer-content"></div>
+  <p class="info-text" style="text-align:center;margin-top:16px;">Résultats transmis par votre enseignant(e)</p>
 </div>
 
 <!-- ====== SCREEN: FINAL ====== -->
@@ -1288,8 +1341,130 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') requestWakeLock();
 });
 
+// =========================================
+// QR CODE — PARTAGE RÉSULTATS
+// =========================================
+
+function encodeResults(r) {
+  const d = {
+    n: r.name,
+    v: r.vma,
+    g: r.gender,
+    a: r.allure,
+    ts: r.tSpeed,
+    rp: r.reps3030,
+    tp: r.results.totalPlots,
+    s12: r.results.sorties12,
+    wp: r.results.walkPen,
+    ok: r.results.repsOk,
+    ra: r.results.rattrapages,
+    tot: r.results.totalSorties,
+    dr: r.results.d1Reg,
+    dv: r.results.d1Vma,
+    dt: r.results.d1Total,
+  };
+  try { return btoa(unescape(encodeURIComponent(JSON.stringify(d)))); }
+  catch(e) { return null; }
+}
+
+function showQRModal() {
+  const r = S.runners[S.currentIdx];
+  if (!r.results) return;
+
+  const encoded = encodeResults(r);
+  if (!encoded) { alert('Impossible d\'encoder les résultats.'); return; }
+
+  const baseUrl = window.location.href.split('#')[0].split('?')[0];
+  const url = baseUrl + '#r=' + encoded;
+
+  const container = document.getElementById('qr-container');
+  container.innerHTML = '';
+
+  if (typeof QRCode !== 'undefined') {
+    new QRCode(container, {
+      text: url,
+      width: 220,
+      height: 220,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M,
+    });
+  } else {
+    // Fallback : lien cliquable si la lib n'est pas chargée
+    container.innerHTML = `<p style="color:#000;font-size:0.75rem;padding:10px;max-width:200px;word-break:break-all;">${url}</p>`;
+  }
+
+  document.getElementById('qr-runner-label').textContent = r.name + ' — ' + r.results.d1Total + ' / 12';
+  document.getElementById('qr-modal').classList.add('open');
+}
+
+function closeQRModal(event) {
+  if (event && event.target !== document.getElementById('qr-modal')) return;
+  document.getElementById('qr-modal').classList.remove('open');
+}
+
+// =========================================
+// VIEWER — MODE ÉLÈVE (lecture QR)
+// =========================================
+
+function checkQRHash() {
+  const hash = window.location.hash;
+  if (!hash.startsWith('#r=')) return false;
+  try {
+    const encoded = hash.slice(3);
+    const json = decodeURIComponent(escape(atob(encoded)));
+    const d = JSON.parse(json);
+    showViewerScreen(d);
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function showViewerScreen(d) {
+  const allureNames = { green: '🟢 Verte (VMA−3)', yellow: '🟡 Jaune (VMA−2)', orange: '🟠 Orange (VMA−1)' };
+  const gLabel = d.g === 'F' ? 'Fille' : 'Garçon';
+  const s12 = d.s12 % 1 === 0 ? d.s12 : (+d.s12).toFixed(1);
+  const tot = d.tot % 1 === 0 ? d.tot : (+d.tot).toFixed(1);
+
+  document.getElementById('viewer-content').innerHTML = `
+    <div class="card">
+      <div class="card-title">👤 Identité</div>
+      <div class="result-row"><span class="label">Nom</span><span class="value">${d.n}</span></div>
+      <div class="result-row"><span class="label">VMA</span><span class="value">${d.v} km/h (${gLabel})</span></div>
+      <div class="result-row"><span class="label">Allure choisie</span><span class="value">${allureNames[d.a] || d.a}</span></div>
+      <div class="result-row"><span class="label">Vitesse cible</span><span class="value">${d.ts} km/h</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Partie 1 — Course 12'</div>
+      <div class="result-row"><span class="label">Plots total</span><span class="value">${d.tp}</span></div>
+      <div class="result-row"><span class="label">Sorties de route</span><span class="value">${s12}</span></div>
+      <div class="result-row"><span class="label">Pénalités marche</span><span class="value">${d.wp}</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Partie 2 — 30/30</div>
+      <div class="result-row"><span class="label">Répétitions réussies</span><span class="value">${d.ok} / ${d.rp}</span></div>
+      <div class="result-row"><span class="label">Rattrapages</span><span class="value">${d.ra > 0 ? '−' + d.ra : '0'}</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Bilan</div>
+      <div class="result-row"><span class="label">Total sorties</span><span class="value">${tot}</span></div>
+      <div class="result-row"><span class="label">Régularité (/8)</span><span class="value">${d.dr} / 8</span></div>
+      <div class="result-row"><span class="label">VMA (/4)</span><span class="value">${d.dv} / 4</span></div>
+      <div class="big-score">${d.dt} / 12</div>
+      <div style="text-align:center;font-size:0.85rem;color:var(--text-dim);">TOTAL DOMAINE 1 / 12</div>
+    </div>`;
+
+  showScreen('screen-viewer');
+}
+
 // Init
 for (let r = 1; r <= 2; r++) selectAllure(r, 'green');
+
+// Vérifier si un QR a été scanné (hash dans l'URL)
+if (!checkQRHash()) {
+  // Mode normal : app prof
+}
 </script>
 
 </body>
