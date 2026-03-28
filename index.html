@@ -404,8 +404,8 @@ html, body {
       <div id="r12-runner-name" style="font-size:1.05rem;font-weight:700;"></div>
     </div>
     <div style="text-align:right;">
-      <div style="font-size:0.72rem;color:var(--text-dim);">CIBLE</div>
-      <div id="r12-target-speed" style="font-size:1.05rem;font-weight:700;font-family:'JetBrains Mono',monospace;"></div>
+      <div style="font-size:0.72rem;color:var(--text-dim);">VMA</div>
+      <div id="r12-vma-display" style="font-size:1.05rem;font-weight:700;font-family:'JetBrains Mono',monospace;"></div>
     </div>
   </div>
 
@@ -431,7 +431,9 @@ html, body {
         <div id="r12-col-time" style="font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;color:var(--text);">0:00</div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:0.68rem;color:var(--text-dim);">PLOTS ATTENDUS / 1'30"</div>
+        <div style="font-size:0.68rem;color:var(--text-dim);">ALLURE CIBLE</div>
+        <div id="r12-target-speed" style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:700;color:var(--text-dim);"></div>
+        <div style="font-size:0.6rem;color:var(--text-dim);margin-top:1px;">PLOTS / 1'30"</div>
         <div id="r12-plot-target" style="font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;color:var(--accent);"></div>
       </div>
     </div>
@@ -528,11 +530,10 @@ html, body {
     <button class="btn btn-walk btn-danger" id="r30-btn-walk" onclick="recordWalk30()">
       🚶 MARCHE / ARRÊT
     </button>
+    <button class="btn btn-secondary" id="r30-btn-finish" onclick="finish3030Early()" style="font-size:0.85rem;">
+      ⏹️ Terminer
+    </button>
   </div>
-
-  <button class="btn btn-primary hidden" id="r30-btn-finish-rest" onclick="finishLastRest()" style="margin-top:8px;">
-    ✅ Fin récup — Passer aux résultats
-  </button>
 
   <div class="divider"></div>
   <div id="r30-summary"></div>
@@ -759,6 +760,7 @@ function launch12() {
   const r = S.runners[S.currentIdx];
   showScreen('screen-12min');
   document.getElementById('r12-runner-name').textContent = r.name;
+  document.getElementById('r12-vma-display').textContent = r.vma + ' km/h';
   document.getElementById('r12-target-speed').textContent = r.tSpeed + ' km/h';
   document.getElementById('r12-plot-target').textContent = r.plotTarget90.toFixed(1);
 
@@ -1034,21 +1036,16 @@ function updateUI30() {
   const r = S.runners[S.currentIdx];
   const ph = document.getElementById('r30-phase');
   const lb = document.getElementById('r30-timer-label');
-  const finBtn = document.getElementById('r30-btn-finish-rest');
   if (isRun) {
     ph.textContent = '🏃 COURSE'; ph.className = 'phase-indicator phase-run';
     lb.textContent = `30/30 — COURSE (Rép. ${repIdx+1}/${r.reps3030})`;
     document.getElementById('r30-btn-plot').disabled = false;
     document.getElementById('r30-btn-walk').disabled = false;
-    finBtn.classList.add('hidden');
   } else {
     ph.textContent = '⏸️ RÉCUPÉRATION'; ph.className = 'phase-indicator phase-rest';
     lb.textContent = `30/30 — REPOS`;
     document.getElementById('r30-btn-plot').disabled = true;
     document.getElementById('r30-btn-walk').disabled = true;
-    // Montrer le bouton "Terminer" uniquement lors de la dernière récupération
-    const isLastRest = repIdx === r.reps3030 - 1;
-    finBtn.classList.toggle('hidden', !isLastRest);
   }
 }
 
@@ -1121,7 +1118,13 @@ function changeReps30(delta) {
   updateUI30();
 }
 
-function finishLastRest() {
+function finish3030Early() {
+  if (!confirm('Terminer les 30/30 maintenant ?')) return;
+  const r = S.runners[S.currentIdx];
+  // Si on est en phase course, sauvegarder la répétition en cours
+  if (isRun && plotsRep > 0) {
+    r.repsData.push({ plots: plotsRep, walked: r.walkPen30[repIdx] || false });
+  }
   clearInterval(t30); t30 = null;
   beepEnd();
   showResults();
